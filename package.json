@@ -1,0 +1,26 @@
+{
+  "name": "vaaniflow",
+  "version": "1.0.0",
+  "description": "VaaniFlow — AI-Powered Multilingual Voice Platform",
+  "private": true,
+  "scripts": {
+    "server": "node server/server.js",
+    "dev:server": "node --watch server/server.js",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "test:backend": "node server/test-runner.js",
+    "seed": "node server/seed.js"
+  },
+  "keywords": [
+    "ai",
+    "voice",
+    "multilingual",
+    "gemini",
+    "marathi",
+    "hindi",
+    "speech-to-text",
+    "text-to-speech"
+  ],
+  "author": "VaaniFlow Team",
+  "license": "MIT"
+}
