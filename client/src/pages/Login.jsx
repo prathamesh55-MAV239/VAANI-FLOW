@@ -34,10 +34,20 @@ export function Login() {
     }
   };
 
-  const handleFillDemo = () => {
+  const handleFillDemo = async (autoSubmit = false) => {
     setEmail('judge@vaaniflow.ai');
     setPassword('password123');
     setLocalError(null);
+    if (autoSubmit) {
+      setIsSubmitting(true);
+      const res = await login('judge@vaaniflow.ai', 'password123');
+      setIsSubmitting(false);
+      if (res.success) {
+        navigate(from, { replace: true });
+      } else {
+        setLocalError(res.message || 'Login failed. Please check credentials.');
+      }
+    }
   };
 
   return (
@@ -64,7 +74,7 @@ export function Login() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 shadow-sm border border-vf-border rounded-3xl sm:px-10">
           {/* Quick Demo Fill Banner for Judges */}
-          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/[0.08] border border-amber-500/20 flex items-center justify-between text-xs">
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/[0.08] border border-amber-500/20 flex items-center justify-between text-xs gap-2">
             <div>
               <span className="font-semibold text-amber-900 block flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-vf-accent" />
@@ -74,13 +84,23 @@ export function Login() {
                 judge@vaaniflow.ai / password123
               </span>
             </div>
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="px-3 py-1.5 rounded-lg bg-vf-accent text-white font-semibold text-xs hover:bg-vf-accent-hover transition-colors shadow-sm"
-            >
-              Fill Demo
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleFillDemo(false)}
+                className="px-2.5 py-1.5 rounded-lg border border-amber-600/30 text-amber-900 font-semibold text-xs hover:bg-amber-100/50 transition-colors"
+              >
+                Fill
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleFillDemo(true)}
+                className="px-3 py-1.5 rounded-lg bg-vf-accent text-white font-semibold text-xs hover:bg-vf-accent-hover transition-colors shadow-sm disabled:opacity-50"
+              >
+                Sign In Demo
+              </button>
+            </div>
           </div>
 
           {localError && (
