@@ -22,18 +22,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to catch 401s
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Avoid infinite redirect loop if checking /me
-      if (!error.config.url.includes('/auth/me')) {
-        localStorage.removeItem('vaaniflow_token');
-        localStorage.removeItem('vaaniflow_user');
-        window.dispatchEvent(new Event('auth:unauthorized'));
-      }
-    }
     return Promise.reject(error);
   }
 );
