@@ -267,38 +267,46 @@ You MUST output your response in ${finalResponseLang} as JSON.`
       }]
     });
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+    let candidateText = null;
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: fullSystemInstruction }]
-        },
-        contents,
-        generationConfig: {
-          temperature: 0.2, // Low temperature for high instruction adherence
-          maxOutputTokens: 800,
-          responseMimeType: 'application/json',
+    for (const model of candidateModels) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: fullSystemInstruction }]
+            },
+            contents,
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 800,
+              responseMimeType: 'application/json',
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText) break;
+        } else {
+          const errorText = await response.text();
+          console.warn(`[Gemini API] Model ${model} returned ${response.status}: ${errorText.slice(0, 100)}...`);
         }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.warn(`[Gemini API Error] Status ${response.status}: ${errorText}`);
-      console.warn('[Gemini Service] Falling back to local conversational intelligence engine.');
-      return generateContextualFallback(message, history, finalInputLang, finalResponseLang);
+      } catch (err) {
+        console.warn(`[Gemini API] Error connecting to ${model}: ${err.message}`);
+      }
     }
 
-    const data = await response.json();
-    const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
     if (!candidateText) {
-      throw new Error('Empty response from Gemini API');
+      console.warn('[Gemini Service] All models exhausted or unavailable. Falling back to local conversational engine.');
+      return generateContextualFallback(message, history, finalInputLang, finalResponseLang);
     }
 
     // Parse structured JSON

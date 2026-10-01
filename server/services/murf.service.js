@@ -8,9 +8,9 @@
 // Default Murf voice mapping for supported languages
 const DEFAULT_MURF_VOICES = {
   mr: {
-    locale: 'mr-IN',
-    voiceId: 'mr-IN-aarav',
-    displayName: 'Murf Marathi (Aarav)',
+    locale: 'hi-IN',
+    voiceId: 'hi-IN-kabir',
+    displayName: 'Murf Marathi/Devanagari (Kabir)',
     style: 'Conversational',
   },
   hi: {
@@ -20,9 +20,9 @@ const DEFAULT_MURF_VOICES = {
     style: 'Conversational',
   },
   en: {
-    locale: 'en-US',
-    voiceId: 'en-US-marcus',
-    displayName: 'Murf English (Marcus)',
+    locale: 'en-IN',
+    voiceId: 'en-IN-aarav',
+    displayName: 'Murf English (Aarav)',
     style: 'Conversational',
   },
 };
@@ -79,7 +79,7 @@ export async function getVoices(apiKey = process.env.MURF_API_KEY) {
  */
 export async function resolveVoiceId(langCode = 'mr') {
   const langKey = langCode ? langCode.toLowerCase().slice(0, 2) : 'mr';
-  const targetLocale = langKey === 'mr' ? 'mr-IN' : langKey === 'hi' ? 'hi-IN' : 'en-US';
+  const targetLocale = langKey === 'mr' ? 'hi-IN' : langKey === 'hi' ? 'hi-IN' : 'en-IN';
 
   const defaultVoice = DEFAULT_MURF_VOICES[langKey] || DEFAULT_MURF_VOICES.mr;
 
