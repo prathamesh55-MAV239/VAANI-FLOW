@@ -72,6 +72,11 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
+    integrations: {
+      supabase: Boolean(process.env.DATABASE_URL || process.env.SUPABASE_URL),
+      murfAi: Boolean(process.env.MURF_API_KEY),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
+    }
   });
 });
 

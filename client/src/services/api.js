@@ -110,6 +110,14 @@ export const aiService = {
     const res = await api.post('/ai/translate', { text, sourceLanguage, targetLanguage });
     return res.data;
   },
+  async getMurfVoices() {
+    const res = await api.get('/ai/murf/voices');
+    return res.data;
+  },
+  async murfSpeak({ text, language, voiceId }) {
+    const res = await api.post('/ai/murf/speak', { text, language, voiceId });
+    return res.data;
+  },
   async health() {
     const res = await api.get('/health');
     return res.data;

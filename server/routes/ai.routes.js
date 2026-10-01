@@ -18,4 +18,8 @@ router.post('/transcribe', aiController.transcribe);
 router.post('/speak', validateBody(speakSchema), aiController.speak);
 router.post('/translate', validateBody(translateSchema), aiController.translate);
 
+// Dedicated Murf AI voice integration endpoints
+router.get('/murf/voices', aiController.getMurfVoices);
+router.post('/murf/speak', aiController.murfSpeak);
+
 export default router;

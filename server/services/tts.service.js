@@ -1,16 +1,19 @@
 /**
  * ============================================================
  * VAANIFLOW — TEXT-TO-SPEECH (TTS) SERVICE ADAPTER
- * High-Quality Multilingual Spoken Response Engine
+ * Multilingual Spoken Response Engine with Murf AI Integration
  * ============================================================
  */
+
+import murfService from './murf.service.js';
 
 // Provider voice mappings with authentic standard voices:
 const LANGUAGE_VOICE_MAP = {
   mr: {
     code: 'mr-IN',
     name: 'Marathi (India)',
-    googleVoice: 'mr-IN-Standard-A', // Official Google Cloud TTS voice for Marathi
+    googleVoice: 'mr-IN-Standard-A',
+    murfVoice: 'mr-IN-aarav',
     pitch: 1.0,
     rate: 0.92,
     nativeSupported: true,
@@ -18,7 +21,8 @@ const LANGUAGE_VOICE_MAP = {
   hi: {
     code: 'hi-IN',
     name: 'Hindi (India)',
-    googleVoice: 'hi-IN-Neural2-A', // Official Google Cloud TTS Neural2 voice for Hindi
+    googleVoice: 'hi-IN-Neural2-A',
+    murfVoice: 'hi-IN-kabir',
     pitch: 1.0,
     rate: 0.95,
     nativeSupported: true,
@@ -26,7 +30,8 @@ const LANGUAGE_VOICE_MAP = {
   en: {
     code: 'en-US',
     name: 'English (United States)',
-    googleVoice: 'en-US-Neural2-F', // Official Google Cloud TTS Neural2 voice for English
+    googleVoice: 'en-US-Neural2-F',
+    murfVoice: 'en-US-marcus',
     pitch: 1.0,
     rate: 1.0,
     nativeSupported: true,
@@ -35,13 +40,48 @@ const LANGUAGE_VOICE_MAP = {
 
 /**
  * Generate speech synthesis payload and audio representation
+ * Primary Engine: Murf AI (when MURF_API_KEY is configured)
+ * Secondary Engine: Google Cloud TTS (when TTS_API_KEY is configured)
+ * Standard Fallback: Browser Web Speech API with authentic voice configs
  */
-export async function synthesizeSpeech({ text, language = 'mr' }) {
+export async function synthesizeSpeech({ text, language = 'mr', voiceId = null }) {
   const langKey = language ? language.toLowerCase().slice(0, 2) : 'mr';
   const voiceConfig = LANGUAGE_VOICE_MAP[langKey] || LANGUAGE_VOICE_MAP.mr;
 
-  const ttsKey = process.env.TTS_API_KEY;
+  // 1. PRIMARY: Murf AI Voice Generation
+  const murfKey = process.env.MURF_API_KEY;
+  if (murfKey && !murfKey.includes('placeholder')) {
+    try {
+      const murfResult = await murfService.generateSpeech({
+        text,
+        language: langKey,
+        voiceId: voiceId || voiceConfig.murfVoice,
+      });
 
+      if (murfResult.success) {
+        return {
+          success: true,
+          language: langKey,
+          audioUrl: murfResult.audioUrl,
+          audioBase64: murfResult.audioBase64,
+          audioLengthInSeconds: murfResult.audioLengthInSeconds,
+          speechConfig: {
+            ...voiceConfig,
+            voiceId: murfResult.voiceId,
+          },
+          provider: 'murf_ai',
+          supported: true,
+        };
+      } else {
+        console.warn('[TTS Service] Murf AI attempt failed, trying fallbacks:', murfResult.message || murfResult.reason);
+      }
+    } catch (murfErr) {
+      console.warn('[TTS Service] Murf AI exception, falling back:', murfErr.message);
+    }
+  }
+
+  // 2. SECONDARY: Google Cloud Text-to-Speech API
+  const ttsKey = process.env.TTS_API_KEY;
   if (ttsKey && !ttsKey.includes('placeholder')) {
     try {
       const googleTtsUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${ttsKey}`;
@@ -69,21 +109,19 @@ export async function synthesizeSpeech({ text, language = 'mr' }) {
             success: true,
             language: langKey,
             audioBase64: `data:audio/mp3;base64,${data.audioContent}`,
+            audioUrl: null,
             speechConfig: voiceConfig,
             provider: 'google_cloud_tts',
             supported: true,
           };
         }
-      } else {
-        const errText = await response.text();
-        console.warn(`[TTS Service] Google Cloud TTS response not ok (${response.status}): ${errText}`);
       }
     } catch (err) {
-      console.warn('[TTS Service] External TTS provider failed, falling back to browser speech synthesis:', err.message);
+      console.warn('[TTS Service] Google Cloud TTS failed, falling back:', err.message);
     }
   }
 
-  // Return standard Web Speech API configuration instructions
+  // 3. TERTIARY / RESILIENCE: Web Speech API Browser configuration
   return {
     success: true,
     text,
@@ -91,6 +129,7 @@ export async function synthesizeSpeech({ text, language = 'mr' }) {
     speechConfig: voiceConfig,
     provider: 'browser_speech_synthesis',
     audioBase64: null,
+    audioUrl: null,
     supported: true,
   };
 }

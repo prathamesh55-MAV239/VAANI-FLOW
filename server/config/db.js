@@ -49,33 +49,47 @@ async function initPgTables(client) {
 }
 
 export async function initDatabase() {
-  const databaseUrl = process.env.DATABASE_URL;
+  let databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || process.env.SUPABASE_DATABASE_URL;
+
+  // Auto-compose Supabase connection string if project URL and password provided
+  if (!databaseUrl && process.env.SUPABASE_URL && process.env.SUPABASE_DB_PASSWORD) {
+    try {
+      const parsedUrl = new URL(process.env.SUPABASE_URL);
+      const projectRef = parsedUrl.hostname.split('.')[0];
+      const password = encodeURIComponent(process.env.SUPABASE_DB_PASSWORD);
+      databaseUrl = `postgresql://postgres:${password}@db.${projectRef}.supabase.co:5432/postgres?sslmode=require`;
+      console.log(`[DB] Composed Supabase PostgreSQL connection string for project: ${projectRef}`);
+    } catch (e) {
+      console.warn('[DB] Could not auto-compose Supabase connection string:', e.message);
+    }
+  }
 
   if (databaseUrl && !databaseUrl.includes('placeholder')) {
     try {
+      const isSupabase = databaseUrl.includes('supabase') || databaseUrl.includes('pooler.supabase');
       pool = new Pool({
         connectionString: databaseUrl,
-        ssl: databaseUrl.includes('supabase') || databaseUrl.includes('render') || databaseUrl.includes('sslmode=require')
+        ssl: isSupabase || databaseUrl.includes('render') || databaseUrl.includes('sslmode=require')
           ? { rejectUnauthorized: false }
           : false,
         max: 10,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 10000,
       });
 
       const client = await pool.connect();
-      console.log('[DB] Connected to PostgreSQL (Supabase / Remote)');
+      console.log(`[DB] Connected to PostgreSQL (${isSupabase ? 'Supabase Database' : 'Remote PostgreSQL'}) successfully.`);
       await initPgTables(client);
       client.release();
       useLocalFallback = false;
       return;
     } catch (err) {
-      console.warn('[DB] PostgreSQL connection attempt failed:', err.message);
+      console.warn('[DB] PostgreSQL / Supabase connection attempt failed:', err.message);
       console.warn('[DB] Falling back to high-fidelity embedded database for development/offline testing.');
       useLocalFallback = true;
     }
   } else {
-    console.log('[DB] No DATABASE_URL specified. Initializing embedded local database.');
+    console.log('[DB] No active DATABASE_URL or Supabase connection configured. Utilizing high-fidelity local database.');
     useLocalFallback = true;
   }
 

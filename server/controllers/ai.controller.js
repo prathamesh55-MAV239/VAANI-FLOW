@@ -2,6 +2,7 @@ import db from '../config/db.js';
 import geminiService from '../services/gemini.service.js';
 import sttService from '../services/stt.service.js';
 import ttsService from '../services/tts.service.js';
+import murfService from '../services/murf.service.js';
 import translationService from '../services/translation.service.js';
 import { determineLanguages, detectLanguageFromText } from '../utils/language.js';
 
@@ -199,9 +200,53 @@ export async function translate(req, res, next) {
   }
 }
 
+/**
+ * Get Murf AI Voices Catalog
+ * GET /api/ai/murf/voices
+ */
+export async function getMurfVoices(req, res, next) {
+  try {
+    const voices = await murfService.getVoices();
+    res.status(200).json({
+      success: true,
+      data: voices,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Dedicated Murf AI Speech Synthesis
+ * POST /api/ai/murf/speak
+ */
+export async function murfSpeak(req, res, next) {
+  try {
+    const { text, language = 'mr', voiceId } = req.body;
+    const result = await murfService.generateSpeech({ text, language, voiceId });
+
+    if (!result.success) {
+      return res.status(result.status || 400).json({
+        success: false,
+        message: result.message || 'Murf AI voice synthesis failed',
+        reason: result.reason,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   chat,
   transcribe,
   speak,
   translate,
+  getMurfVoices,
+  murfSpeak,
 };
