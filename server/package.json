@@ -9,6 +9,9 @@
     "dev": "node --watch server.js",
     "test": "node --test"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "bcryptjs": "^2.4.3",

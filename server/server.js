@@ -21,22 +21,35 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS configuration
+const rawClientUrls = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((url) => url.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
-  process.env.CLIENT_URL,
-].filter(Boolean);
+  ...rawClientUrls,
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server) or matching allowed origins
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      if (
+        allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith('.vercel.app') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
         callback(null, true);
       } else {
-        callback(new Error('Blocked by CORS policy'));
+        console.warn(`[CORS] Blocked request from origin: ${origin}`);
+        callback(new Error(`Blocked by CORS policy: ${origin}`));
       }
     },
     credentials: true,
