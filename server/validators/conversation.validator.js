@@ -11,13 +11,13 @@ export const updateConversationSchema = z.object({
 export const chatSchema = z.object({
   conversationId: z.string().min(1, { message: 'conversationId is required' }),
   message: z.string().trim().min(1, { message: 'Message content cannot be empty' }),
-  inputLanguage: z.enum(['en', 'hi', 'mr']).optional().default('en'),
-  responseLanguage: z.enum(['en', 'hi', 'mr']).optional().default('en'),
+  inputLanguage: z.enum(['en', 'hi', 'mr']).optional(),
+  responseLanguage: z.enum(['en', 'hi', 'mr']).optional(),
 });
 
 export const speakSchema = z.object({
   text: z.string().trim().min(1, { message: 'Text cannot be empty' }),
-  language: z.string().trim().optional().default('en'),
+  language: z.string().trim().optional(),
 });
 
 export const translateSchema = z.object({

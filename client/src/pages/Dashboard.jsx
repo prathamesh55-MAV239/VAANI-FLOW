@@ -24,9 +24,12 @@ export function Dashboard() {
   } = useConversation();
 
   const {
+    voiceState,
+    setVoiceState,
     isListening,
     interimTranscript,
     isSpeaking,
+    speakingLanguage,
     voiceError,
     startListening,
     stopListening,
@@ -40,10 +43,14 @@ export function Dashboard() {
     } else {
       startListening(inputLanguage, async (finalTranscript) => {
         if (finalTranscript && finalTranscript.trim()) {
+          setVoiceState('THINKING');
           const assistantMsg = await sendMessage(finalTranscript);
           if (assistantMsg?.content) {
-            // Auto-speak response in target language
-            speak(assistantMsg.content, responseLanguage);
+            // Auto-speak response in the AI's actual returned response language
+            const langToSpeak = assistantMsg.language || responseLanguage || inputLanguage;
+            speak(assistantMsg.content, langToSpeak);
+          } else {
+            setVoiceState('IDLE');
           }
         }
       });
@@ -58,20 +65,28 @@ export function Dashboard() {
     }
     const assistantMsg = await sendMessage(text);
     if (assistantMsg?.content) {
-      speak(assistantMsg.content, lang || responseLanguage);
+      const langToSpeak = assistantMsg.language || lang || responseLanguage;
+      speak(assistantMsg.content, langToSpeak);
     }
   };
 
+  // Text message send
   const handleSendMessage = async (text) => {
     const assistantMsg = await sendMessage(text);
     if (assistantMsg?.content) {
-      // Optional speech response on text input
-      speak(assistantMsg.content, responseLanguage);
+      // Optional speech response in the AI's actual returned response language
+      const langToSpeak = assistantMsg.language || responseLanguage || inputLanguage;
+      speak(assistantMsg.content, langToSpeak);
     }
   };
 
+  const handleLanguageChange = (lang) => {
+    setInputLanguage(lang);
+    setResponseLanguage(lang);
+  };
+
   return (
-    <div className="flex h-screen bg-vf-bg dark:bg-vf-dark text-vf-text dark:text-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#F5F3EE] dark:bg-[#111111] text-[#151515] dark:text-zinc-100 overflow-hidden font-sans">
       {/* Collapsible Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -86,7 +101,7 @@ export function Dashboard() {
           error={error}
           inputLanguage={inputLanguage}
           responseLanguage={responseLanguage}
-          onSelectLanguage={setInputLanguage}
+          onSelectLanguage={handleLanguageChange}
           onStartVoice={handleToggleVoice}
           onSelectPrompt={handleSelectPrompt}
           onOpenSidebar={() => setSidebarOpen(true)}
@@ -96,6 +111,10 @@ export function Dashboard() {
               handleSendMessage(lastUserMsg.content);
             }
           }}
+          voiceState={voiceState}
+          isListening={isListening}
+          isSpeaking={isSpeaking}
+          speakingLanguage={speakingLanguage}
         />
 
         {/* Bottom Input Area with Integrated Voice and Text */}
@@ -106,10 +125,7 @@ export function Dashboard() {
           interimTranscript={interimTranscript}
           onToggleVoice={handleToggleVoice}
           inputLanguage={inputLanguage}
-          onSelectLanguage={(lang) => {
-            setInputLanguage(lang);
-            setResponseLanguage(lang);
-          }}
+          onSelectLanguage={handleLanguageChange}
           voiceError={voiceError}
         />
       </div>

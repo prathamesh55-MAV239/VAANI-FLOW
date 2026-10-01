@@ -5,27 +5,45 @@
  * ============================================================
  */
 
+// Provider voice mappings with authentic standard voices:
 const LANGUAGE_VOICE_MAP = {
-  mr: { code: 'mr-IN', name: 'Marathi (India)', pitch: 1.0, rate: 0.95 },
-  hi: { code: 'hi-IN', name: 'Hindi (India)', pitch: 1.0, rate: 0.95 },
-  en: { code: 'en-US', name: 'English (United States)', pitch: 1.0, rate: 1.0 },
+  mr: {
+    code: 'mr-IN',
+    name: 'Marathi (India)',
+    googleVoice: 'mr-IN-Standard-A', // Official Google Cloud TTS voice for Marathi
+    pitch: 1.0,
+    rate: 0.92,
+    nativeSupported: true,
+  },
+  hi: {
+    code: 'hi-IN',
+    name: 'Hindi (India)',
+    googleVoice: 'hi-IN-Neural2-A', // Official Google Cloud TTS Neural2 voice for Hindi
+    pitch: 1.0,
+    rate: 0.95,
+    nativeSupported: true,
+  },
+  en: {
+    code: 'en-US',
+    name: 'English (United States)',
+    googleVoice: 'en-US-Neural2-F', // Official Google Cloud TTS Neural2 voice for English
+    pitch: 1.0,
+    rate: 1.0,
+    nativeSupported: true,
+  },
 };
 
 /**
  * Generate speech synthesis payload and audio representation
  */
 export async function synthesizeSpeech({ text, language = 'mr' }) {
-  const langKey = language.toLowerCase().slice(0, 2);
-  const voiceConfig = LANGUAGE_VOICE_MAP[langKey] || LANGUAGE_VOICE_MAP.en;
+  const langKey = language ? language.toLowerCase().slice(0, 2) : 'mr';
+  const voiceConfig = LANGUAGE_VOICE_MAP[langKey] || LANGUAGE_VOICE_MAP.mr;
 
-  // If a dedicated TTS API key is configured (e.g. Google Cloud TTS or ElevenLabs),
-  // we can call that provider here.
   const ttsKey = process.env.TTS_API_KEY;
 
   if (ttsKey && !ttsKey.includes('placeholder')) {
     try {
-      // Optional external provider invocation
-      // e.g. Google Cloud Text-to-Speech REST endpoint
       const googleTtsUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${ttsKey}`;
       const response = await fetch(googleTtsUrl, {
         method: 'POST',
@@ -34,6 +52,7 @@ export async function synthesizeSpeech({ text, language = 'mr' }) {
           input: { text },
           voice: {
             languageCode: voiceConfig.code,
+            name: voiceConfig.googleVoice,
             ssmlGender: 'FEMALE'
           },
           audioConfig: {
@@ -51,26 +70,32 @@ export async function synthesizeSpeech({ text, language = 'mr' }) {
             language: langKey,
             audioBase64: `data:audio/mp3;base64,${data.audioContent}`,
             speechConfig: voiceConfig,
-            provider: 'google_cloud_tts'
+            provider: 'google_cloud_tts',
+            supported: true,
           };
         }
+      } else {
+        const errText = await response.text();
+        console.warn(`[TTS Service] Google Cloud TTS response not ok (${response.status}): ${errText}`);
       }
     } catch (err) {
-      console.warn('[TTS Service] External TTS provider failed, falling back:', err.message);
+      console.warn('[TTS Service] External TTS provider failed, falling back to browser speech synthesis:', err.message);
     }
   }
 
-  // Return formatted speech synthesis parameters and ready audio instructions
+  // Return standard Web Speech API configuration instructions
   return {
     success: true,
     text,
     language: langKey,
     speechConfig: voiceConfig,
     provider: 'browser_speech_synthesis',
-    audioBase64: null, // Frontend will utilize high-fidelity Web Speech API with native voice
+    audioBase64: null,
+    supported: true,
   };
 }
 
 export default {
   synthesizeSpeech,
+  LANGUAGE_VOICE_MAP,
 };

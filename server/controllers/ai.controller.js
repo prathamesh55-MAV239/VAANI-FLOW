@@ -3,6 +3,7 @@ import geminiService from '../services/gemini.service.js';
 import sttService from '../services/stt.service.js';
 import ttsService from '../services/tts.service.js';
 import translationService from '../services/translation.service.js';
+import { determineLanguages, detectLanguageFromText } from '../utils/language.js';
 
 /**
  * Handle AI conversational chat with full context memory & persistence
@@ -11,7 +12,7 @@ import translationService from '../services/translation.service.js';
 export async function chat(req, res, next) {
   try {
     const userId = req.user.id;
-    const { conversationId, message, inputLanguage = 'en', responseLanguage = 'en' } = req.body;
+    const { conversationId, message, inputLanguage: reqInputLang, responseLanguage: reqResponseLang } = req.body;
 
     // 1. Verify conversation ownership
     const convResult = await db.query(
@@ -35,6 +36,15 @@ export async function chat(req, res, next) {
     );
     const history = historyResult.rows;
 
+    // Determine effective languages with text analysis and context fallback
+    const lastMsgLang = history.slice(-1)[0]?.language;
+    const { inputLanguage, responseLanguage } = determineLanguages(
+      message,
+      reqInputLang,
+      reqResponseLang,
+      lastMsgLang || 'mr'
+    );
+
     // 3. Send to Gemini Conversational AI
     const aiResult = await geminiService.generateChatResponse({
       message,
@@ -43,27 +53,29 @@ export async function chat(req, res, next) {
       responseLanguage,
     });
 
-    // 4. Optional Translation if target language differs or requested
+    const effectiveResponseLanguage = aiResult.language || responseLanguage;
+
+    // 4. Optional Translation if cross-lingual response was explicitly desired
     let translation = null;
-    if (aiResult.needs_translation || (responseLanguage !== 'en' && inputLanguage === 'en')) {
+    if (aiResult.needs_translation || (responseLanguage !== inputLanguage && effectiveResponseLanguage !== responseLanguage)) {
       const transResult = await translationService.translateText({
         text: aiResult.response,
-        sourceLanguage: aiResult.language,
+        sourceLanguage: effectiveResponseLanguage,
         targetLanguage: responseLanguage,
       });
       translation = transResult.translation;
     }
 
-    // 5. Persist user message
+    // 5. Persist user message with detected language
     await db.query(
       'INSERT INTO messages (conversation_id, role, content, language, intent) VALUES ($1, $2, $3, $4, $5)',
       [conversationId, 'user', message, inputLanguage, aiResult.intent]
     );
 
-    // 6. Persist assistant response
+    // 6. Persist assistant response with response language
     const assistantMsgResult = await db.query(
       'INSERT INTO messages (conversation_id, role, content, language, intent) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at',
-      [conversationId, 'assistant', aiResult.response, responseLanguage, aiResult.intent]
+      [conversationId, 'assistant', aiResult.response, effectiveResponseLanguage, aiResult.intent]
     );
     const savedAssistantMsg = assistantMsgResult.rows[0];
 
@@ -83,7 +95,9 @@ export async function chat(req, res, next) {
       success: true,
       data: {
         intent: aiResult.intent,
-        language: aiResult.language,
+        language: effectiveResponseLanguage,
+        inputLanguage,
+        responseLanguage: effectiveResponseLanguage,
         response: aiResult.response,
         translation: translation || undefined,
         confidence: aiResult.confidence,
@@ -131,11 +145,14 @@ export async function transcribe(req, res, next) {
  */
 export async function speak(req, res, next) {
   try {
-    const { text, language = 'mr' } = req.body;
+    const { text, language } = req.body;
+    const resolvedLang = language && ['mr', 'hi', 'en', 'mr-IN', 'hi-IN', 'en-US'].includes(language)
+      ? language.slice(0, 2).toLowerCase()
+      : detectLanguageFromText(text, 'mr');
 
     const result = await ttsService.synthesizeSpeech({
       text,
-      language,
+      language: resolvedLang,
     });
 
     res.status(200).json({
