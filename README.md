@@ -11,11 +11,21 @@
 
 ---
 
+## 🎥 Demo Video
+
+Watch the live product demo to see VaaniFlow in action across multilingual voice interaction, context retention, and real-time spoken responses.
+
+[![VaaniFlow Demo Video](https://img.youtube.com/vi/0hj7eksbqUc/maxresdefault.jpg)](https://youtu.be/0hj7eksbqUc)
+
+Click the thumbnail above to watch the full demo on YouTube.
+
+---
+
 ## 📖 Overview
 
-**VaaniFlow** transforms natural human speech into context-aware, intelligent, and spoken multilingual conversations across **Marathi (मराठी)**, **Hindi (हिन्दी)**, and **English**.
+**VaaniFlow** transforms natural human speech into context-aware, intelligent, and spoken multilingual conversations across **Marathi (मराठी)**, **Hindi (हिन्दी)**, and **English**. It makes digital communication more natural and accessible by combining speech-to-text, conversational AI, multilingual understanding, and text-to-speech in a seamless workflow.
 
-Unlike traditional chatbots that treat turns as isolated text fragments, VaaniFlow bridges the voice gap by preserving context memory across conversations, recognizing colloquial Indian language nuances, translating on demand, and vocalizing responses using natural speech synthesis.
+Unlike traditional chatbots that treat turns as isolated text fragments, VaaniFlow bridges the voice gap by preserving context memory across conversations, recognizing colloquial Indian language nuances, and returning spoken answers in a user-friendly, low-friction format.
 
 ---
 
@@ -30,14 +40,14 @@ Unlike traditional chatbots that treat turns as isolated text fragments, VaaniFl
 ## 💡 The Solution
 
 VaaniFlow provides a unified conversational intelligence loop:
-```
-  USER SPEAKS (मराठी / हिन्दी / English)
+```text
+USER SPEAKS (मराठी / हिन्दी / English)
              ↓
-    SPEECH-TO-TEXT (STT)
+   SPEECH-TO-TEXT (STT)
              ↓
-    LANGUAGE & INTENT DETECTION
+   LANGUAGE & INTENT DETECTION
              ↓
-  GEMINI 2.0 CONTEXTUAL REASONING (Retains 10-turn memory)
+ GEMINI 2.0 CONTEXTUAL REASONING (Retains 10-turn memory)
              ↓
     DYNAMIC TRANSLATION (Optional)
              ↓
@@ -62,15 +72,15 @@ VaaniFlow provides a unified conversational intelligence loop:
 
 ## 🏗️ Architecture
 
-```
+```text
   [ React 18 + Vite Frontend ]
-              │  ▲
-  HTTPS / JWT │  │ JSON / Audio Data
-              ▼  │
+               │  ▲
+   HTTPS / JWT │  │ JSON / Audio Data
+               ▼  │
   [ Express.js REST API Server ]
-              │
-      ┌───────┼─────────────────────────┐
-      ▼       ▼                         ▼
+               │
+       ┌───────┼─────────────────────────┐
+       ▼       ▼                         ▼
   [Supabase] [Gemini Conversational AI] [Voice Layer]
   Postgres   - Multilingual Prompting   - STT Adapter
              - Context Sliding Window   - TTS Adapter
